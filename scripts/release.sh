@@ -63,7 +63,7 @@ parents+=(-p HEAD)
 
 rm -rf "$DIST_DIR"
 echo "+ $BUILD_CMD" >&2
-$BUILD_CMD
+$BUILD_CMD >&2 # stdout is reserved for the --dry-run SHA
 
 # Every bin must be built JS that plain Node can run.
 node -e '
