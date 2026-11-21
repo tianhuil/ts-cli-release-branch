@@ -1,0 +1,74 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - id: release
+        run: scripts/release.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  # Install the release the way users would, from a clean runner.
+  verify-install:
+    needs: release
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        how: [npm-global, pnpm-global, bun-global, yarn1-global, npx, pnpm-dlx, bunx]
+        ref: [tag, release]
+    env:
+      SPEC: github:${{ github.repository }}#${{ matrix.ref == 'tag' && needs.release.outputs.tag || 'release' }}
+      BIN: ts-cli-release-branch
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: oven-sh/setup-bun@v2
+      - name: Install and run
+        run: |
+          set -euo pipefail
+          export PNPM_HOME="$RUNNER_TEMP/pnpm" PATH="$RUNNER_TEMP/pnpm:$HOME/.bun/bin:$PATH"
+          case "${{ matrix.how }}" in
+            npm-global)   npm install -g "$SPEC";  out=$("$BIN" --version) ;;
+            pnpm-global)  pnpm add -g "$SPEC";     out=$("$BIN" --version) ;;
+            bun-global)   bun add -g "$SPEC";      out=$("$BIN" --version) ;;
+            yarn1-global) npm install -g yarn@1; yarn global add "$SPEC"; out=$("$(yarn global bin)/$BIN" --version) ;;
+            npx)          out=$(npx --yes "$SPEC" --version) ;;
+            pnpm-dlx)     out=$(pnpm dlx "$SPEC" --version) ;;
+            bunx)         out=$(bunx "$SPEC" --version) ;;
+          esac
+          want="${{ needs.release.outputs.tag }}"; want="${want#v}"
+          echo "got: $out, want: $want"
+          test "$(echo "$out" | tail -n1)" = "$want"
