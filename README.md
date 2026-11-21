@@ -8,11 +8,11 @@
 Ship a TypeScript CLI straight from GitHub, with no npm registry and no built JavaScript committed to `main`. Users install a tag with any package manager:
 
 ```sh
-npm install -g github:tianhuil/ts-cli-release-branch#v0.3.0
-pnpm add -g github:tianhuil/ts-cli-release-branch#v0.3.0
-bun add -g github:tianhuil/ts-cli-release-branch#v0.3.0
-yarn global add github:tianhuil/ts-cli-release-branch#v0.3.0   # Yarn 1 only
-npx --yes github:tianhuil/ts-cli-release-branch#v0.3.0 --version
+npm install -g github:tianhuil/ts-cli-release-branch#v0.4.0
+pnpm add -g github:tianhuil/ts-cli-release-branch#v0.4.0
+bun add -g github:tianhuil/ts-cli-release-branch#v0.4.0
+yarn global add github:tianhuil/ts-cli-release-branch#v0.4.0   # Yarn 1 only
+npx --yes github:tianhuil/ts-cli-release-branch#v0.4.0 --version
 ```
 
 Pin a tag from [Releases](https://github.com/tianhuil/ts-cli-release-branch/releases), or use `#release` for the latest. Prefer a tag with `pnpm dlx` and `bunx`: both reuse a cached copy of `#release` after it moves (`npx` refetched it).
@@ -22,7 +22,7 @@ This repo is a working demo, and its CI is the proof: every push installs the re
 ## How it works
 
 - `main` holds source only; `dist/` is gitignored.
-- On each push to `main`, [`release.yml`](.github/workflows/release.yml) runs [`scripts/release.sh`](scripts/release.sh). If tag `v<package.json version>` doesn't exist yet, the script builds, commits `main`'s files plus `dist/` to the `release` branch, tags that commit, pushes both, and creates a GitHub Release. If the tag exists, it does nothing. **To release, bump `version`.**
+- On each push to `main`, [`release.yml`](.github/workflows/release.yml) runs `node scripts/release.mts publish` ([`scripts/release.mts`](scripts/release.mts)). If tag `v<package.json version>` doesn't exist yet, the script builds, commits `main`'s files plus `dist/` to the `release` branch, tags that commit, pushes both, and creates a GitHub Release. If the tag exists, it does nothing. **To release, bump `version`.**
 - Each release commit has two parents: the previous release and the source commit on `main`.
 
 ## Rules the package must follow
@@ -30,8 +30,8 @@ This repo is a working demo, and its CI is the proof: every push installs the re
 | Rule | Why |
 |---|---|
 | `bin` points at built `.js` with `#!/usr/bin/env node` | Node won't run TypeScript from `node_modules` (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`), so a `.ts` bin only works for Bun users. |
-| `"files": ["dist"]` in `package.json` | Without it, installers apply `.gitignore` and can drop `dist/`. `release.sh` fails if any built file would be dropped. |
-| No `build`, `prepare`, `prepack`, `install`, `preinstall` or `postinstall` script in the release commit | npm then reinstalls dev dependencies on every git install, and `npm install -g` breaks. `release.sh` strips them from the release commit's `package.json` only; `main` keeps them. |
+| `"files": ["dist"]` in `package.json` | Without it, installers apply `.gitignore` and can drop `dist/`. `release.mts` fails if any built file would be dropped. |
+| No `build`, `prepare`, `prepack`, `install`, `preinstall` or `postinstall` script in the release commit | npm then reinstalls dev dependencies on every git install, and `npm install -g` breaks. `release.mts` strips them from the release commit's `package.json` only; `main` keeps them. |
 
 ## Pitfalls
 
@@ -41,24 +41,46 @@ This repo is a working demo, and its CI is the proof: every push installs the re
 
 ## Develop
 
-Any package manager works on `main`; `release.sh` picks the build command from the lockfile (here, pnpm).
+Any package manager works on `main`; the release script picks the build command from the lockfile (here, pnpm).
 
 ```sh
 pnpm install
-pnpm dev --version        # node src/cli.ts (Node ≥ 22.18 runs .ts outside node_modules)
-pnpm test                 # node --test
+pnpm dev --version          # node src/cli.ts (Node ≥ 22.18 runs .ts outside node_modules)
+pnpm typecheck && pnpm test # tsc, then node --test (includes the release script's tests)
 pnpm build && node dist/cli.js
-scripts/release.sh --dry-run   # build and check the release commit; prints its SHA, pushes nothing
-scripts/try-release.sh --install
 ```
 
-To try the next release before tagging it, run [`scripts/try-release.sh`](scripts/try-release.sh). It builds the release commit, packs it the way installers will, and prints the tarball path. With `--install`, it also installs that tarball globally with npm. Or pass the path to `pnpm add -g` or `bun add -g`.
+## Release script
 
-`release.sh` settings are environment variables: `BUILD_CMD`, `DIST_DIR` (`dist`), `RELEASE_BRANCH` (`release`), `TAG_PREFIX` (`v`), `REMOTE` (`origin`), `GH_RELEASE` (`1`).
+[`scripts/release.mts`](scripts/release.mts) is TypeScript that Node runs directly (Node ≥ 22.18, plus the `commander` dev dependency). It has three commands; run `node scripts/release.mts <command> --help` for each:
+
+| Command | What it does |
+|---|---|
+| `publish` | What CI runs. If the tag exists, it does nothing. Otherwise it builds, checks, commits to `release`, tags, pushes, and creates a GitHub Release. |
+| `check` | Builds and checks the release commit locally. It prints the commit's SHA and pushes nothing. |
+| `pack [--install]` | Like `check`, then writes the tarball installers would get and prints its path. `--install` also installs it globally with npm. Use this to try a release before tagging it. |
+
+Settings come from flags, then a JSON config file (`--config`, default `release.config.json` if present), then defaults. For example:
+
+```json
+{
+  "buildCommand": "pnpm run compile",
+  "distDir": "dist",
+  "releaseBranch": "release",
+  "tagPrefix": "v",
+  "remote": "origin",
+  "githubRelease": true
+}
+```
+
+Unknown keys and wrong types are errors. The `.mts` extension makes Node load it as an ES module even in a package without `"type": "module"`.
 
 ## Use in your repo
 
-Copy `scripts/release.sh`, `scripts/try-release.sh` and `.github/workflows/release.yml` (drop the `verify-install` job if you like), add `"files"` to `package.json`, and gitignore `dist/`.
+1. Copy `scripts/release.mts`, `scripts/tsconfig.json` and `.github/workflows/release.yml`. Drop the `verify-install` job, or set its `BIN` to your command.
+2. Add `commander` as a dev dependency, and `"files": ["dist"]` to `package.json`.
+3. Gitignore `dist/`. If it is tracked, run `git rm -r --cached dist`.
+4. Commit, then run `node scripts/release.mts pack --install` and check your command's `--version`.
 
 ## License
 
