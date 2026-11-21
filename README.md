@@ -1,5 +1,10 @@
 # ts-cli-release-branch
 
+[![release workflow](https://github.com/tianhuil/ts-cli-release-branch/actions/workflows/release.yml/badge.svg)](https://github.com/tianhuil/ts-cli-release-branch/actions/workflows/release.yml)
+[![latest release](https://img.shields.io/github/v/release/tianhuil/ts-cli-release-branch)](https://github.com/tianhuil/ts-cli-release-branch/releases/latest)
+[![license: MIT](https://img.shields.io/github/license/tianhuil/ts-cli-release-branch)](LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](package.json)
+
 Ship a TypeScript CLI straight from GitHub, with no npm registry and no built JavaScript committed to `main`. Users install a tag with any package manager:
 
 ```sh
@@ -43,23 +48,17 @@ pnpm install
 pnpm dev --version        # node src/cli.ts (Node ≥ 22.18 runs .ts outside node_modules)
 pnpm test                 # node --test
 pnpm build && node dist/cli.js
-scripts/release.sh --dry-run   # build the release commit locally and check it; prints its SHA, pushes nothing
+scripts/release.sh --dry-run   # build and check the release commit; prints its SHA, pushes nothing
+scripts/try-release.sh --install
 ```
 
-To try a release before tagging it:
-
-```sh
-c=$(scripts/release.sh --dry-run)
-mkdir /tmp/try && git archive "$c" | tar -x -C /tmp/try
-(cd /tmp/try && npm pack --ignore-scripts)
-npm install -g /tmp/try/ts-cli-release-branch-*.tgz
-```
+To try the next release before tagging it, run [`scripts/try-release.sh`](scripts/try-release.sh). It builds the release commit, packs it the way installers will, and prints the tarball path. With `--install`, it also installs that tarball globally with npm. Or pass the path to `pnpm add -g` or `bun add -g`.
 
 `release.sh` settings are environment variables: `BUILD_CMD`, `DIST_DIR` (`dist`), `RELEASE_BRANCH` (`release`), `TAG_PREFIX` (`v`), `REMOTE` (`origin`), `GH_RELEASE` (`1`).
 
 ## Use in your repo
 
-Copy `scripts/release.sh` and `.github/workflows/release.yml` (drop the `verify-install` job if you like), add `"files"` to `package.json`, and gitignore `dist/`.
+Copy `scripts/release.sh`, `scripts/try-release.sh` and `.github/workflows/release.yml` (drop the `verify-install` job if you like), add `"files"` to `package.json`, and gitignore `dist/`.
 
 ## License
 
