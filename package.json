@@ -19,12 +19,15 @@
     "dev": "node src/cli.ts",
     "typecheck": "tsc --noEmit && tsc -p scripts",
     "test": "node --test",
-    "release": "node scripts/release.mts"
+    "release": "node scripts/release.mts",
+    "lint": "biome check .",
+    "format": "biome check --write ."
   },
   "dependencies": {
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.8",
     "@types/node": "^24.0.0",
     "commander": "^15.1.0",
     "typescript": "^5.9.3"

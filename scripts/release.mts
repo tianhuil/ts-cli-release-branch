@@ -157,7 +157,15 @@ function commitRelease(config: ReleaseConfig, tag: string, rawPackageJson: strin
     const tree = git(['write-tree'], { env })
     const parents = fetchReleaseBranch(config) ? [`${config.remote}/${config.releaseBranch}`, 'HEAD'] : ['HEAD']
     const source = git(['rev-parse', 'HEAD'])
-    return git(['commit-tree', tree, ...parents.flatMap((p) => ['-p', p]), '-m', `Release ${tag}`, '-m', `Source: ${source}`])
+    return git([
+      'commit-tree',
+      tree,
+      ...parents.flatMap((p) => ['-p', p]),
+      '-m',
+      `Release ${tag}`,
+      '-m',
+      `Source: ${source}`,
+    ])
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -268,10 +276,10 @@ export function buildProgram(run: Run = release): Command {
     )
     .showHelpAfterError()
     .addOption(
-      new Option('-c, --config <file>', 'JSON file of settings, keyed by the camelCase flag names; relative to the repo root').default(
-        'release.config.json',
-        'release.config.json, if present',
-      ),
+      new Option(
+        '-c, --config <file>',
+        'JSON file of settings, keyed by the camelCase flag names; relative to the repo root',
+      ).default('release.config.json', 'release.config.json, if present'),
     )
     .addOption(
       new Option(
@@ -279,9 +287,15 @@ export function buildProgram(run: Run = release): Command {
         'shell command that builds the output (default: "<pm> run build", <pm> from the lockfile)',
       ),
     )
-    .addOption(new Option('--dist-dir <dir>', 'build output directory, added to the release commit').default(DEFAULTS.distDir))
+    .addOption(
+      new Option('--dist-dir <dir>', 'build output directory, added to the release commit').default(DEFAULTS.distDir),
+    )
     .addOption(new Option('--release-branch <name>', 'branch that holds the releases').default(DEFAULTS.releaseBranch))
-    .addOption(new Option('--tag-prefix <prefix>', 'prefix before the package.json version in tag names').default(DEFAULTS.tagPrefix))
+    .addOption(
+      new Option('--tag-prefix <prefix>', 'prefix before the package.json version in tag names').default(
+        DEFAULTS.tagPrefix,
+      ),
+    )
     .addOption(new Option('--remote <name>', 'git remote to read tags from and push to').default(DEFAULTS.remote))
     .addHelpText(
       'after',

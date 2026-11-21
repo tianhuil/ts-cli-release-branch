@@ -27,10 +27,10 @@ This repo is a working demo, and its CI is the proof: every push installs the re
 
 ## Rules the package must follow
 
-| Rule | Why |
-|---|---|
-| `bin` points at built `.js` with `#!/usr/bin/env node` | Node won't run TypeScript from `node_modules` (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`), so a `.ts` bin only works for Bun users. |
-| `"files": ["dist"]` in `package.json` | Without it, installers apply `.gitignore` and can drop `dist/`. `release.mts` fails if any built file would be dropped. |
+| Rule                                                                                                    | Why                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bin` points at built `.js` with `#!/usr/bin/env node`                                                  | Node won't run TypeScript from `node_modules` (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`), so a `.ts` bin only works for Bun users.                                             |
+| `"files": ["dist"]` in `package.json`                                                                   | Without it, installers apply `.gitignore` and can drop `dist/`. `release.mts` fails if any built file would be dropped.                                                             |
 | No `build`, `prepare`, `prepack`, `install`, `preinstall` or `postinstall` script in the release commit | npm then reinstalls dev dependencies on every git install, and `npm install -g` breaks. `release.mts` strips them from the release commit's `package.json` only; `main` keeps them. |
 
 ## Pitfalls
@@ -46,6 +46,7 @@ Any package manager works on `main`; the release script picks the build command 
 ```sh
 pnpm install
 pnpm dev --version          # node src/cli.ts (Node ≥ 22.18 runs .ts outside node_modules)
+pnpm lint                   # biome check (pnpm format applies fixes)
 pnpm typecheck && pnpm test # tsc, then node --test (includes the release script's tests)
 pnpm build && node dist/cli.js
 ```
@@ -54,10 +55,10 @@ pnpm build && node dist/cli.js
 
 [`scripts/release.mts`](scripts/release.mts) is TypeScript that Node runs directly (Node ≥ 22.18, plus the `commander` dev dependency). It has three commands; run `node scripts/release.mts <command> --help` for each:
 
-| Command | What it does |
-|---|---|
-| `publish` | What CI runs. If the tag exists, it does nothing. Otherwise it builds, checks, commits to `release`, tags, pushes, and creates a GitHub Release. |
-| `check` | Builds and checks the release commit locally. It prints the commit's SHA and pushes nothing. |
+| Command            | What it does                                                                                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `publish`          | What CI runs. If the tag exists, it does nothing. Otherwise it builds, checks, commits to `release`, tags, pushes, and creates a GitHub Release.                             |
+| `check`            | Builds and checks the release commit locally. It prints the commit's SHA and pushes nothing.                                                                                 |
 | `pack [--install]` | Like `check`, then writes the tarball installers would get and prints its path. `--install` also installs it globally with npm. Use this to try a release before tagging it. |
 
 Settings come from flags, then a JSON config file (`--config`, default `release.config.json` if present), then defaults. For example:

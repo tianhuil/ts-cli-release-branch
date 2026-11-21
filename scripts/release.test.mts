@@ -19,7 +19,8 @@ import {
 
 describe('stripLifecycleScripts', () => {
   test('drops install-time scripts, keeps the rest and the indentation', () => {
-    const raw = '{\n\t"name": "x",\n\t"scripts": {\n\t\t"build": "tsc",\n\t\t"prepare": "tsc",\n\t\t"test": "node --test"\n\t}\n}\n'
+    const raw =
+      '{\n\t"name": "x",\n\t"scripts": {\n\t\t"build": "tsc",\n\t\t"prepare": "tsc",\n\t\t"test": "node --test"\n\t}\n}\n'
     assert.equal(stripLifecycleScripts(raw), '{\n\t"name": "x",\n\t"scripts": {\n\t\t"test": "node --test"\n\t}\n}\n')
   })
 
@@ -34,10 +35,22 @@ test('findUnpackedFiles lists built files the pack left out', () => {
 })
 
 test('detectPackageManager reads the lockfile', () => {
-  assert.equal(detectPackageManager((f) => f === 'pnpm-lock.yaml'), 'pnpm')
-  assert.equal(detectPackageManager((f) => f === 'bun.lock'), 'bun')
-  assert.equal(detectPackageManager((f) => f === 'yarn.lock'), 'yarn')
-  assert.equal(detectPackageManager(() => false), 'npm')
+  assert.equal(
+    detectPackageManager((f) => f === 'pnpm-lock.yaml'),
+    'pnpm',
+  )
+  assert.equal(
+    detectPackageManager((f) => f === 'bun.lock'),
+    'bun',
+  )
+  assert.equal(
+    detectPackageManager((f) => f === 'yarn.lock'),
+    'yarn',
+  )
+  assert.equal(
+    detectPackageManager(() => false),
+    'npm',
+  )
 })
 
 test('binPaths normalizes string and object forms', () => {
