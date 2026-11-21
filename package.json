@@ -1,6 +1,6 @@
 {
   "name": "ts-cli-release-branch",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Demo: ship a TypeScript CLI from GitHub with a release branch, no npm registry.",
   "license": "MIT",
   "type": "module",
@@ -16,13 +16,16 @@
   "packageManager": "pnpm@10.15.0",
   "scripts": {
     "dev": "node src/cli.ts",
-    "test": "node --test"
+    "typecheck": "tsc --noEmit && tsc -p scripts",
+    "test": "node --test",
+    "release": "node scripts/release.mts"
   },
   "dependencies": {
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "commander": "^15.1.0",
     "typescript": "^5.9.3"
   }
 }

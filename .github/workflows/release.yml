@@ -27,12 +27,13 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
       - run: pnpm test
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - id: release
-        run: scripts/release.sh
+        run: node scripts/release.mts publish
         env:
           GH_TOKEN: ${{ github.token }}
 
