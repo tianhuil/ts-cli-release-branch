@@ -1,6 +1,6 @@
 {
   "name": "ts-cli-release-branch",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Demo: ship a TypeScript CLI from GitHub with a release branch, no npm registry.",
   "license": "MIT",
   "type": "module",
