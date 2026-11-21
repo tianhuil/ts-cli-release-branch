@@ -43,7 +43,9 @@ if [ -n "${GITHUB_OUTPUT:-}" ]; then
 fi
 
 rc=0; git ls-remote --exit-code --tags "$REMOTE" "refs/tags/$tag" >/dev/null || rc=$?
-if [ "$rc" = 0 ]; then
+if [ "$rc" = 0 ] && [ "$DRY_RUN" = 1 ]; then
+  echo "$tag already exists on $REMOTE; building anyway for the dry run." >&2
+elif [ "$rc" = 0 ]; then
   echo "$tag already exists on $REMOTE; nothing to release." >&2
   exit 0
 elif [ "$rc" != 2 ]; then
